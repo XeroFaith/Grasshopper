@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+
+
 """
 Author: XeroFaith
 Purpose: script to automate Bing searches
@@ -17,16 +20,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-browser = webdriver.Firefox()  # open Firefox
-
-
-
-uname = sys.argv[1]
-pword = sys.argv[2]
+# uname = sys.argv[1]
+# pword = sys.argv[2]
 
 
 # sign in to bing
-def sign_in(email, password):
+def sign_in(browser, email, password):
     browser.get("https://login.live.com/")  # open outlook.com
 
 
@@ -48,60 +47,136 @@ def sign_in(email, password):
     password_elem.send_keys(password)
     password_elem.send_keys(Keys.ENTER)
 
+    wait_time = random.randint(20, 100) / 10
+    time.sleep(wait_time)  # pause time
 
-# create list of search terms
-
-search_list = ['doustopped', 'immeasurableness', 'sextette', 'penthouse', 'payette', 'oarfishes', 'pollutedness',
-               'leucocythaemia', 'baldomero', 'misbehavior', 'ankylotic', 'unelected', 'englacial', 'vinie',
-               'vorticella', 'camwood', 'noninferable', 'chylous', 'subitem', 'preexploded', 'foggia', 'subpubic',
-               'interclass', 'outthrusting', 'acinacifolious', 'amrita', 'gape', 'cauld', 'cain', 'nonexpiry',
-               'resourcefully', 'recon', 'thir', 'diatropism', 'influential', 'permalloy', 'uninvented', 'velouria',
-               'luminance', 'krebs', 'langmuir', 'guayaberas', 'bertrant', 'thereby', 'triploblastic', 'unarithmetical',
-               'decomposable', 'knobbier', 'strachey', 'whichever', 'ledger', 'intransigent', 'letting', 'onassis',
-               'nonanachronous', 'rappelling', 'deciare', 'solariums', 'misreward', 'soliloquised', 'carthaginian',
-               'geomorphology', 'overworking', 'antitheology', 'gardena', 'sourceful', 'supersensuality', 'fidget',
-               'hypocaust', 'lipocaic', 'duellist', 'untheatrical', 'metrics', 'babbler', 'supremacy', 'reclaimant',
-               'heartedly', 'disharmony', 'perdured', 'marled', 'baalistic', 'easylike', 'airliner', 'prosopopoeia',
-               'prophets', 'arbitrarily', 'intermunicipal', 'poyntill', 'jansenism', 'democratising', 'makah',
-               'flavorous', 'pommelled', 'nonbreaching', 'intent', 'anteprandial', 'neuritic', 'resaleable',
-               'unremembered', 'unpenetrating']
+    browser.get("https://www.bing.com/")
+    time.sleep(wait_time)
 
 
-# loop search using random searching method
-def search_loop(n):  # n is an integer
+def runCarousel(browser):
 
     browser.get('http://www.bing.com/')  # open bing
 
-    for i in range(0, n):
-        search_term = search_list[random.randint(0, 99)]  # set random search term
-        elem = browser.find_element_by_name("q")  # Find the search box
-        elem.send_keys(search_term + Keys.RETURN)  # Enter random search term from list
-        browser.get("http://www.bing.com/")  # open bing
-        time.sleep(5.0)  # pause time
+    try:
+        element = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.ID, "crs_itemLink_0"))
+        )
+    finally:
+        carousel_elem = browser.find_element_by_id("crs_itemLink_0")
+
+    href = carousel_elem.get_attribute("href")
+
+    browser.get(href)
 
 
+    try:
+        element = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "nav_right"))
+        )
+    finally:
+        arrow = browser.find_element_by_class_name("nav_right")
 
 
+    element_count = 0
+    carousel_elems = []
+
+    while (element_count < 50):
+
+        try:
+            element = WebDriverWait(browser, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "card"))
+            )
+        finally:
+            carousel_elems = browser.find_elements_by_class_name("card")
+
+            element_count = len(carousel_elems)
+
+            arrow.click()
+
+
+    hrefs = []
+
+    for item in carousel_elems:
+        image = item.find_element_by_xpath("./a[1]")
+        href = image.get_attribute("href")
+        hrefs.append(href)
+
+
+    for link in hrefs:
+        wait_time = random.randint(10, 50) / 10
+        browser.get(link)  # open bing
+        time.sleep(wait_time)  # pause time
+
+
+def runDailies(browser):
+
+    # rewards page
+    global hrefs
+    browser.get("https://www.bing.com/rewards/dashboard")
+
+    try:
+        element = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "tileset"))
+        )
+    finally:
+        # dailyPage is the set of all of the gray box groups
+        dailypage = browser.find_elements_by_class_name("tileset")
+
+    # classBlock is the singular grab box group
+    for classBlock in dailypage:
+        title = classBlock.find_element_by_class_name("dashboard-title")
+
+
+        if (title.text == "Earn and explore"):
+            # these are "a" tags that have the hrefs in them
+            links = classBlock.find_elements_by_tag_name("a")
+
+            hrefs = []
+
+            for link in links:
+                linkText = link.find_element_by_class_name("title")
+
+                if (linkText.text != "Trivia challenge"):
+
+                    href = link.get_attribute("href")
+                    hrefs.append(href)
+
+    for href in hrefs:
+        wait_time = random.randint(10, 50) / 10
+        browser.get(href)  # open bing
+        time.sleep(wait_time)  # pause time
 
 
 ## --------------------------------------------------------------------------------------------------------- ##
 
 def main():
+
+
+    ff = webdriver.Firefox()  # open Firefox
+
     print('Begin Script')
 
-    sign_in(uname, pword)
+    uname = 'jondavid0117@outlook.com'
+    pword = 'P@$$word11'
+
+    sign_in(ff, uname, pword)
 
     time.sleep(random.randint(20, 100) / 10)  # suspend script to allow for sign in process to complete
 
-    search_loop(30)
+    runDailies(ff)
 
-    browser.quit()
+    #runCarousel(ff)
+
+    ff.quit()
+
+    input()
 
 ## --------------------------------------------------------------------------------------------------------- ##
 
 
 
-#main()
+main()
 
 
 
