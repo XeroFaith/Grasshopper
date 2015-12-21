@@ -20,15 +20,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import datetime
 
-# uname = sys.argv[1]
-# pword = sys.argv[2]
 
 
 # sign in to bing
 def sign_in(browser, email, password):
     browser.get("https://login.live.com/")  # open outlook.com
 
-
+    # locate username and password boxes
     try:
         element = WebDriverWait(browser, 10).until(
             EC.presence_of_element_located((By.NAME, "loginfmt"))
@@ -59,18 +57,22 @@ def runCarousel(browser):
     if (browser.current_url != "https://www.bing.com/"):
         browser.get('https://www.bing.com/')  # open bing
 
+    # clicks first image on home page in order to navigate to search page with larger carousel
     try:
         element = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.ID, "crs_itemLink_0"))
+            EC.presence_of_element_located((By.ID, "crs_pane"))
         )
     finally:
-        carousel_elem = browser.find_element_by_id("crs_itemLink_0")
+        carousel = browser.find_element_by_id("crs_pane")
 
-    href = carousel_elem.get_attribute("href")
+    # first image element
+    carousel_elem = carousel.find_element_by_id("crs_itemLink_0")
 
-    browser.get(href)
+    first_href = carousel_elem.get_attribute("href")
 
+    browser.get(first_href)
 
+    """
     try:
         element = WebDriverWait(browser, 10).until(
             EC.presence_of_element_located((By.CLASS_NAME, "nav_right"))
@@ -78,37 +80,60 @@ def runCarousel(browser):
     finally:
         arrow = browser.find_element_by_class_name("nav_right")
 
+    #arrow.click()
+    """
 
-    element_count = 0
-    carousel_elems = []
+    # find all carousel items ("cards")
+    try:
+        element = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "card"))
+        )
+    finally:
+        carousel_elems = browser.find_elements_by_class_name("card")
 
-    while (element_count < 50):
+        element_count = len(carousel_elems)
 
-        try:
-            element = WebDriverWait(browser, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "card"))
-            )
-        finally:
-            carousel_elems = browser.find_elements_by_class_name("card")
-
-            element_count = len(carousel_elems)
-
-            arrow.click()
-
-
+    # lists of all hrefs and title phrases to be searched
     hrefs = []
+    titles = []
 
+    # get all hrefs and titles
     for item in carousel_elems:
         image = item.find_element_by_xpath("./a[1]")
         href = image.get_attribute("href")
         hrefs.append(href)
+        title_attr = image.get_attribute("title")
+        title = title_attr[:title_attr.find(" - ")]
+        titles.append(title)
 
-
-
+    # loop through hrefs
     for link in hrefs:
         wait_time = random.randint(10, 50) / 10
         browser.get(link)  # open bing
         time.sleep(wait_time)  # pause time
+
+    # if there were less than 30 images, then search their titles
+    if (element_count < 30):
+
+        remainder = 30 - element_count
+
+        for title in titles[:remainder + 1]:
+            wait_time = random.randint(10, 50) / 10
+            browser.get("https://www.bing.com/")  # open bing
+            time.sleep(wait_time)  # pause time
+
+            try:
+                element = WebDriverWait(browser, 10).until(
+                    EC.presence_of_element_located((By.ID, "sb_form_q"))
+                )
+            finally:
+                search_box = browser.find_element_by_id("sb_form_q")
+
+            search_box.send_keys(title)
+            search_box.send_keys(Keys.ENTER)
+
+
+
 
 
 def runDailies(browser):
@@ -184,7 +209,8 @@ def runMobile(browser):
         href = a_tag.get_attribute("href")
         hrefs.append(href)
 
-    for href in hrefs[:25]:
+    for href in hrefs[:24]:
+    #for href in hrefs[:2]:
         wait_time = random.randint(10, 50) / 10
         browser.get(href)
         time.sleep(wait_time)  # pause time
@@ -195,10 +221,7 @@ def main():
     uname = sys.argv[1]
     pword = sys.argv[2]
 
-    print("Account: ",uname,'\n',
-          "Begin: ",datetime.date.today(),'\n\n'
-          )
-
+    print("Account: ",uname,' - ',"Begin: ",datetime.datetime.today())
 
     ff = webdriver.Firefox()  # open Firefox
 
@@ -224,14 +247,11 @@ def main():
 
     iOS_FF.quit()
 
-    print("Account: ",uname,'\n',
-          "End: ",datetime.date.today(),'\n\n'
+    print("Account: ",uname,' - ',"End: ",datetime.datetime.today(),'\n\n'
           )
+
 ## --------------------------------------------------------------------------------------------------------- ##
 
 
 
 main()
-
-
-
